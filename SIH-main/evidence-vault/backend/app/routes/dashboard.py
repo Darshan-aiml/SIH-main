@@ -1,0 +1,204 @@
+"""Dashboard & utility routes"""
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import Optional
+
+from app.database import get_db
+from app.models.case import Case
+from app.models.evidence import Evidence, CustodyEvent
+from app.models.blockchain import BlockchainBlock
+from app.models.audit import AuditLog
+from app.models.ai_analysis import AIAnalysis
+from app.models.user import User
+from app.schemas import DashboardStats
+from app.security.auth import get_current_user
+from app.config import settings
+
+router = APIRouter(prefix="/api", tags=["Dashboard"])
+
+
+@router.get("/dashboard", response_model=DashboardStats)
+def get_dashboard(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    total_cases = db.query(Case).count()
+    total_evidence = db.query(Evidence).count()
+    verified = db.query(Evidence).filter(Evidence.integrity_status == "VERIFIED").count()
+    pending = db.query(Evidence).filter(Evidence.integrity_status == "PENDING").count()
+    blocks = db.query(BlockchainBlock).count()
+    transfers = db.query(CustodyEvent).filter(CustodyEvent.action.in_(["EVIDENCE_TRANSFERRED", "CUSTODY_TRANSFERRED"])).count()
+
+
+    # AI alerts (high risk)
+    high_risk = db.query(AIAnalysis).filter(AIAnalysis.risk_score >= 50).count()
+
+    # Recent activity
+    recent_logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10).all()
+    recent = [
+        {
+            "action": l.action,
+            "user": l.user_email,
+            "resource": f"{l.resource_type} {l.resource_id}",
+            "timestamp": l.timestamp.isoformat() if l.timestamp else "",
+            "status": l.status,
+        }
+        for l in recent_logs
+    ]
+
+    # Evidence by category
+    categories = db.query(
+        Evidence.classification, func.count(Evidence.id)
+    ).group_by(Evidence.classification).all()
+    ev_by_cat = [{"name": c[0] or "OTHER", "value": c[1]} for c in categories]
+
+    # Case status distribution
+    case_statuses = db.query(
+        Case.status, func.count(Case.id)
+    ).group_by(Case.status).all()
+    case_dist = [{"name": s[0], "value": s[1]} for s in case_statuses]
+
+    # Evidence over time (last 7 days)
+    ev_over_time = []
+    for i in range(6, -1, -1):
+        day = datetime.utcnow() - timedelta(days=i)
+        day_start = day.replace(hour=0, minute=0, second=0)
+        day_end = day.replace(hour=23, minute=59, second=59)
+        count = db.query(Evidence).filter(
+            Evidence.created_at >= day_start,
+            Evidence.created_at <= day_end,
+        ).count()
+        ev_over_time.append({"date": day.strftime("%b %d"), "count": count})
+
+    # Risk distribution
+    low = db.query(AIAnalysis).filter(AIAnalysis.risk_score < 30).count()
+    med = db.query(AIAnalysis).filter(AIAnalysis.risk_score >= 30, AIAnalysis.risk_score < 70).count()
+    high = db.query(AIAnalysis).filter(AIAnalysis.risk_score >= 70).count()
+    risk_dist = [
+        {"name": "Low Risk", "value": low},
+        {"name": "Medium Risk", "value": med},
+        {"name": "High Risk", "value": high},
+    ]
+
+    # High risk alerts
+    high_risk_items = db.query(AIAnalysis).filter(AIAnalysis.risk_score >= 50).limit(5).all()
+    alerts = []
+    for a in high_risk_items:
+        ev = db.query(Evidence).filter(Evidence.id == a.evidence_id).first()
+        if ev:
+            alerts.append({
+                "evidence_id": ev.evidence_id,
+                "filename": ev.original_filename,
+                "risk_score": a.risk_score,
+                "risk_level": a.risk_level,
+            })
+
+    return DashboardStats(
+        total_cases=total_cases,
+        total_evidence=total_evidence,
+        verified_evidence=verified,
+        pending_review=pending,
+        custody_transfers=transfers,
+        ai_alerts=high_risk,
+        blockchain_blocks=blocks,
+        recent_activity=recent,
+        evidence_by_category=ev_by_cat,
+        case_status_distribution=case_dist,
+        evidence_over_time=ev_over_time,
+        risk_distribution=risk_dist,
+        high_risk_alerts=alerts,
+    )
+
+
+
+@router.get("/health")
+def health_check(db: Session = Depends(get_db)):
+    # Check database
+    db_status = "connected"
+    try:
+        db.execute(func.count(User.id).select())
+    except Exception:
+        db_status = "error"
+
+    # Check storage
+    import os
+    storage_status = "available" if os.path.isdir(settings.STORAGE_DIR) else "unavailable"
+
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "storage": storage_status,
+        "ai": "available",
+        "blockchain": "operational",
+        "demo_mode": settings.DEMO_MODE,
+    }
+
+
+@router.get("/search")
+def global_search(
+    q: str = Query(..., min_length=1),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    results = {"cases": [], "evidence": [], "people": []}
+
+    # Search cases
+    cases = db.query(Case).filter(
+        (Case.title.ilike(f"%{q}%")) |
+        (Case.case_number.ilike(f"%{q}%")) |
+        (Case.description.ilike(f"%{q}%"))
+    ).limit(10).all()
+    results["cases"] = [{"id": c.id, "case_number": c.case_number, "title": c.title} for c in cases]
+
+    # Search evidence
+    evidence = db.query(Evidence).filter(
+        (Evidence.evidence_id.ilike(f"%{q}%")) |
+        (Evidence.original_filename.ilike(f"%{q}%")) |
+        (Evidence.description.ilike(f"%{q}%"))
+    ).limit(10).all()
+    results["evidence"] = [{"id": e.id, "evidence_id": e.evidence_id,
+                           "filename": e.original_filename} for e in evidence]
+
+    # Search users
+    users = db.query(User).filter(
+        (User.full_name.ilike(f"%{q}%")) |
+        (User.email.ilike(f"%{q}%"))
+    ).limit(5).all()
+    results["people"] = [{"id": u.id, "name": u.full_name, "role": u.role} for u in users]
+
+    return results
+
+
+@router.post("/demo/simulate-tamper")
+def simulate_tamper(
+    evidence_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Demo-only: Simulate tampering by modifying stored hash."""
+    if not settings.DEMO_MODE:
+        raise HTTPException(status_code=403, detail="Only available in demo mode")
+
+    ev = db.query(Evidence).filter(Evidence.id == evidence_id).first()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Evidence not found")
+
+    # Modify the hash to simulate tampering
+    original_hash = ev.sha256_hash
+    ev.sha256_hash = "TAMPERED_" + original_hash[9:]
+    ev.integrity_status = "TAMPERED"
+    db.commit()
+
+    from app.utils.helpers import create_audit_log
+    create_audit_log(db, user_id=user.id, user_email=user.email, role=user.role,
+                    action="DEMO_TAMPER_SIMULATION", resource_type="EVIDENCE",
+                    resource_id=ev.evidence_id, details="Simulated tampering for demo")
+
+    return {
+        "success": True,
+        "message": "Tampering simulated. Original hash modified.",
+        "original_hash": original_hash,
+        "tampered_hash": ev.sha256_hash,
+    }
