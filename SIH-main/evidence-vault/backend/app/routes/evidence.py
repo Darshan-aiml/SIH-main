@@ -4,7 +4,7 @@ import uuid
 import json
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -270,6 +270,8 @@ def download_evidence(
 @router.get("/{evidence_id_param}/passport", response_model=EvidencePassport)
 def get_passport(
     evidence_id_param: int,
+    request: Request,
+    host: Optional[str] = Query(None, description="Client host override for mobile or laptop scanning"),
     user: User = Depends(require_permission("evidence.read")),
     db: Session = Depends(get_db),
 ):
@@ -279,7 +281,11 @@ def get_passport(
 
     case = db.query(Case).filter(Case.id == ev.case_id).first()
     uploader = db.query(User).filter(User.id == ev.uploaded_by).first()
-    qr = generate_qr_base64(ev.evidence_id)
+
+    from app.routes.public import get_base_client_url
+    base_url = get_base_client_url(request, host)
+    verification_url = f"{base_url}/verify/evidence/{ev.evidence_id}"
+    qr = generate_qr_base64(verification_url)
 
     return EvidencePassport(
         evidence_id=ev.evidence_id,
@@ -302,6 +308,7 @@ def get_passport(
         blockchain_status=ev.blockchain_status,
         custody_count=ev.custody_count or 1,
         qr_code=qr,
+        verification_url=verification_url,
     )
 
 

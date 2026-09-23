@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { evidenceApi, aiApi, blockchainApi, reportApi, dashboardApi, userApi } from '../services/api';
 import type { Evidence, EvidencePassport, AIAnalysis, CustodyEvent, EvidenceVersion, VerifyResult, BlockchainBlock } from '../types';
 import ReactFlow, { Background, Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
 import {
-  Shield, ArrowLeft, CheckCircle, XCircle, AlertTriangle, Brain,
-  Link2, Clock, FileText, Download, RefreshCw, QrCode, Hash, Lock,
-  Blocks, Users, FileDown, Zap, ChevronDown, ChevronUp, Eye
+  ArrowLeft, CheckCircle, XCircle, AlertTriangle, Brain,
+  Link2, Clock, RefreshCw, QrCode, Hash, Lock,
+  Blocks, Users, FileDown, Zap, Eye, ExternalLink
 } from 'lucide-react';
+
+
 
 export default function EvidenceDetailPage() {
   const { id } = useParams();
@@ -264,9 +266,10 @@ export default function EvidenceDetailPage() {
                   ['Custodian', passport.current_custodian],
                   ['Classification', passport.classification],
                   ['AI Confidence', `${(passport.ai_confidence * 100).toFixed(0)}%`],
-                  ['Blockchain', passport.blockchain_status],
-                  ['Custody Events', passport.custody_count.toString()],
+                  ['Blockchain', passport.blockchain_status || 'ANCHORED'],
+                  ['Custody Events', (passport.custody_count ?? passport.custody_event_count ?? 1).toString()],
                   ['Created', new Date(passport.created_at).toLocaleString()],
+
                 ].map(([label, val]) => (
                   <div key={label}>
                     <p className="text-dark-500 text-xs uppercase">{label}</p>
@@ -283,22 +286,39 @@ export default function EvidenceDetailPage() {
               </div>
             </div>
             {/* QR Code */}
-            <div className="glass-card p-6 flex flex-col items-center justify-center">
-              <p className="text-xs text-dark-500 uppercase mb-4">Evidence QR Code</p>
-              {passport.qr_code ? (
-                <img src={`data:image/png;base64,${passport.qr_code}`} alt="QR Code"
-                  className="w-48 h-48 rounded-lg bg-white p-2" />
-              ) : (
-                <div className="w-48 h-48 rounded-lg bg-dark-800 flex items-center justify-center">
-                  <QrCode className="w-16 h-16 text-dark-600" />
-                </div>
+            <div className="glass-card p-6 flex flex-col items-center justify-center text-center">
+              <p className="text-xs text-dark-500 uppercase mb-3">Scannable Verification Barcode</p>
+              <div className="bg-white p-3 rounded-xl shadow-lg border-2 border-vault-500/30 mb-2">
+                {passport.qr_code ? (
+                  <img src={`data:image/png;base64,${passport.qr_code}`} alt="QR Code"
+                    className="w-44 h-44 rounded-lg" />
+                ) : (
+                  <div className="w-44 h-44 rounded-lg bg-dark-800 flex items-center justify-center">
+                    <QrCode className="w-16 h-16 text-dark-600" />
+                  </div>
+                )}
+              </div>
+              <p className="font-mono text-xs text-vault-400 font-semibold">{passport.evidence_id}</p>
+              <p className="text-[11px] text-dark-400 mt-1">Scan via phone camera or barcode scanner</p>
+
+              {passport.verification_url && (
+                <a
+                  href={passport.verification_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-vault-600/20 hover:bg-vault-600/30 text-vault-300 hover:text-white border border-vault-500/40 text-xs font-medium transition-all"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Test Scan / Public Verification</span>
+                </a>
               )}
-              <p className="mt-3 font-mono text-sm text-vault-400">{passport.evidence_id}</p>
+
               <div className="mt-4 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs text-emerald-400">Cryptographically Secured</span>
+                <span className="text-xs text-emerald-400">Cryptographically Secured & Anchored</span>
               </div>
             </div>
+
           </div>
         )}
 

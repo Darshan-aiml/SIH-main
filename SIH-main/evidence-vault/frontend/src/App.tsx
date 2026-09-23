@@ -12,7 +12,10 @@ import EvidenceDetailPage from './pages/EvidenceDetailPage';
 import EvidencePassportPage from './pages/EvidencePassportPage';
 import BlockchainPage from './pages/BlockchainPage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import LoginActivityPage from './pages/LoginActivityPage';
+import ReportsPage from './pages/ReportsPage';
 import UsersPage from './pages/UsersPage';
+import PublicVerifyPage from './pages/PublicVerifyPage';
 import './App.css';
 
 interface AuthCtx {
@@ -85,6 +88,9 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/verify/evidence/:evidenceId" element={<PublicVerifyPage />} />
+          <Route path="/verify/case/:caseId" element={<PublicVerifyPage />} />
+          <Route path="/verify/:id" element={<PublicVerifyPage />} />
           <Route path="/" element={
             <ProtectedRoute><Layout /></ProtectedRoute>
           }>
@@ -95,6 +101,9 @@ function App() {
             <Route path="evidence/:id" element={<EvidenceDetailPage />} />
             <Route path="evidence/:id/passport" element={<EvidencePassportPage />} />
             <Route path="blockchain" element={<BlockchainPage />} />
+            <Route path="login-activity" element={<LoginActivityPage />} />
+            <Route path="login-history" element={<Navigate to="/login-activity" replace />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="audit" element={<AuditLogsPage />} />
             <Route path="users" element={<UsersPage />} />
           </Route>

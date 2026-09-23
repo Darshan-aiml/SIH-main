@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
-import { dashboardApi } from '../services/api';
+import { dashboardApi, authApi } from '../services/api';
 import {
-  LayoutDashboard, FolderOpen, Shield, Brain, Link2,
-  Blocks, ClipboardList, Users, Settings, LogOut, Search,
-  Bell, ChevronLeft, ChevronRight, Fingerprint, Menu, X
+  LayoutDashboard, FolderOpen, Shield,
+  Blocks, ClipboardList, Users, LogOut, Search,
+  Bell, ChevronLeft, ChevronRight, Fingerprint, X, FileText, KeyRound
 } from 'lucide-react';
+
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/cases', icon: FolderOpen, label: 'Cases' },
+  { to: '/reports', icon: FileText, label: 'Case Reports' },
   { to: '/evidence', icon: Shield, label: 'Evidence Vault' },
   { to: '/blockchain', icon: Blocks, label: 'Blockchain' },
+  { to: '/login-activity', icon: KeyRound, label: 'Login History' },
   { to: '/audit', icon: ClipboardList, label: 'Audit Logs' },
   { to: '/users', icon: Users, label: 'Users' },
 ];
@@ -24,6 +27,15 @@ export default function Layout() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [showSearch, setShowSearch] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Ignore if network failure
+    }
+    logout();
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -167,7 +179,7 @@ export default function Layout() {
                   {user?.full_name?.charAt(0) || 'U'}
                 </span>
               </div>
-              <button onClick={logout} className="p-2 text-dark-500 hover:text-red-400 transition-colors" title="Logout">
+              <button onClick={handleLogout} className="p-2 text-dark-500 hover:text-red-400 transition-colors cursor-pointer" title="Logout">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>

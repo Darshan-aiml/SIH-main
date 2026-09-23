@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { evidenceApi } from '../services/api';
-import type { EvidencePassport, VerifyResult } from '../types';
+import { evidenceApi, publicApi } from '../services/api';
+import type { EvidencePassport, VerifyResult, NetworkInfo } from '../types';
 import {
   Shield, ArrowLeft, CheckCircle, XCircle, RefreshCw, QrCode, Hash, Lock,
-  Copy, Check, FileText, User, Calendar, Award, AlertTriangle, Layers
+  Copy, Check, FileText, User, Calendar, Award, AlertTriangle, Layers,
+  ExternalLink
 } from 'lucide-react';
+
 
 export default function EvidencePassportPage() {
   const { id } = useParams();
@@ -16,18 +18,33 @@ export default function EvidencePassportPage() {
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [copiedHash, setCopiedHash] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
 
+  // Load network info to discover LAN IP
   useEffect(() => {
+    publicApi.getNetworkInfo()
+      .then((res) => setNetworkInfo(res.data))
+      .catch((err) => console.log('Network info lookup:', err));
+  }, []);
+
+  const loadPassport = (targetHost?: string) => {
     if (!id) return;
-    evidenceApi.getPassport(parseInt(id))
+    setLoading(true);
+    evidenceApi.getPassport(parseInt(id), targetHost)
       .then((r) => setPassport(r.data))
       .catch((err) => {
         console.error(err);
         setErrorMsg(err.response?.data?.detail || 'Failed to load Evidence Passport');
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  };
+
+  useEffect(() => {
+    const host = networkInfo?.lan_ip ? `${networkInfo.lan_ip}:5173` : undefined;
+    loadPassport(host);
+  }, [id, networkInfo?.lan_ip]);
 
   const handleVerify = async () => {
     if (!id) return;
@@ -36,8 +53,8 @@ export default function EvidencePassportPage() {
     try {
       const res = await evidenceApi.verify(parseInt(id));
       setVerifyResult(res.data);
-      // Reload passport to refresh integrity status
-      const updated = await evidenceApi.getPassport(parseInt(id));
+      const host = networkInfo?.lan_ip ? `${networkInfo.lan_ip}:5173` : undefined;
+      const updated = await evidenceApi.getPassport(parseInt(id), host);
       setPassport(updated.data);
     } catch (err: any) {
       setErrorMsg(err.response?.data?.detail || 'Verification request failed');
@@ -45,6 +62,7 @@ export default function EvidencePassportPage() {
       setVerifying(false);
     }
   };
+
 
   const copyToClipboard = (text: string, type: 'hash' | 'id') => {
     navigator.clipboard.writeText(text);
@@ -107,11 +125,10 @@ export default function EvidencePassportPage() {
 
       {/* Verification Results Banner */}
       {verifyResult && (
-        <div className={`p-5 rounded-xl border transition-all ${
-          verifyResult.status === 'VERIFIED'
-            ? 'bg-emerald-500/10 border-emerald-500/30'
-            : 'bg-red-500/10 border-red-500/30'
-        }`}>
+        <div className={`p-5 rounded-xl border transition-all ${verifyResult.status === 'VERIFIED'
+          ? 'bg-emerald-500/10 border-emerald-500/30'
+          : 'bg-red-500/10 border-red-500/30'
+          }`}>
           <div className="flex items-start gap-4">
             {verifyResult.status === 'VERIFIED' ? (
               <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
@@ -127,7 +144,7 @@ export default function EvidencePassportPage() {
                 {verifyResult.status === 'VERIFIED' ? '✓ INTEGRITY VERIFIED' : '⚠ TAMPERING DETECTED'}
               </h3>
               <p className="text-sm text-dark-300 mt-1">{verifyResult.details}</p>
-              
+
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono bg-dark-900/60 p-3 rounded-lg border border-dark-700/50">
                 <div>
                   <span className="text-dark-500 block">Stored Hash:</span>
@@ -150,7 +167,7 @@ export default function EvidencePassportPage() {
         {/* Holographic lines decoration */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-vault-600/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyber-600/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
-        
+
         {/* Passport Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-dark-700/60 gap-4">
           <div className="flex items-center gap-4">
@@ -167,13 +184,12 @@ export default function EvidencePassportPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
-              passport.integrity_status === 'VERIFIED'
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : passport.integrity_status === 'TAMPERED'
+            <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${passport.integrity_status === 'VERIFIED'
+              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+              : passport.integrity_status === 'TAMPERED'
                 ? 'bg-red-500/15 text-red-400 border-red-500/30'
                 : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-            }`}>
+              }`}>
               {passport.integrity_status === 'VERIFIED' ? (
                 <CheckCircle className="w-3.5 h-3.5" />
               ) : passport.integrity_status === 'TAMPERED' ? (
@@ -301,11 +317,18 @@ export default function EvidencePassportPage() {
           {/* Right Column: QR Code & Security Stamp */}
           <div className="flex flex-col items-center justify-between bg-dark-800/30 p-6 rounded-xl border border-dark-700/50">
             <div className="text-center w-full">
-              <p className="text-xs font-semibold uppercase tracking-wider text-dark-400 mb-4">
-                Digital Verification QR Code
+              <p className="text-xs font-semibold uppercase tracking-wider text-dark-400 mb-3">
+                Digital Verification QR Barcode
               </p>
-              
-              <div className="bg-white p-4 rounded-xl inline-block shadow-xl border-4 border-vault-600/30 mx-auto">
+
+              {/* Universal Network QR Code */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium mb-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Universal Network QR Code</span>
+              </div>
+
+              {/* Scannable QR Code */}
+              <div className="bg-white p-4 rounded-xl inline-block shadow-xl border-4 border-vault-600/30 mx-auto transition-transform hover:scale-105">
                 {passport.qr_code ? (
                   <img
                     src={`data:image/png;base64,${passport.qr_code}`}
@@ -320,24 +343,58 @@ export default function EvidencePassportPage() {
               </div>
 
               <p className="font-mono text-xs text-vault-400 mt-3 font-semibold">{passport.evidence_id}</p>
-              <p className="text-[11px] text-dark-500 mt-1">Scan QR code to verify passport authenticity</p>
+
+              <p className="text-[11px] text-emerald-400 font-medium mt-1">
+                ✓ Scannable by Mobile Phone Camera or Any Device on Network
+              </p>
+
+              {/* Interactive Test Scan & Copy Buttons */}
+              <div className="flex flex-col gap-2 mt-4 max-w-xs mx-auto">
+                {passport.verification_url && (
+                  <a
+                    href={passport.verification_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-vault-600/20 hover:bg-vault-600/30 text-vault-300 hover:text-white border border-vault-500/40 text-xs font-semibold transition-all shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Test Scan / Open Verification</span>
+                  </a>
+                )}
+                {passport.verification_url && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(passport.verification_url || '');
+                      setCopiedUrl(true);
+                      setTimeout(() => setCopiedUrl(false), 2000);
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-dark-800 hover:bg-dark-700 text-dark-300 hover:text-white text-[11px] border border-dark-700 transition-colors"
+                  >
+                    {copiedUrl ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedUrl ? 'Verification URL Copied' : 'Copy Scannable URL'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="w-full mt-6 pt-6 border-t border-dark-700/50 space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-500">Blockchain Ledger:</span>
-                <span className="text-cyan-400 font-mono font-medium">{passport.blockchain_status}</span>
+                <span className="text-cyan-400 font-mono font-medium">{passport.blockchain_status || 'ANCHORED'}</span>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-dark-500">Custody Transfers:</span>
-                <span className="text-white font-medium">{passport.custody_count} recorded events</span>
+                <span className="text-white font-medium">{passport.custody_count ?? passport.custody_event_count ?? 1} recorded events</span>
               </div>
+
               <div className="flex items-center justify-center gap-2 pt-2 text-emerald-400 text-xs font-medium">
                 <Lock className="w-4 h-4" />
                 <span>Fernet Symmetric Encrypted</span>
               </div>
             </div>
           </div>
+
         </div>
 
         {/* Passport Footer Stamp */}

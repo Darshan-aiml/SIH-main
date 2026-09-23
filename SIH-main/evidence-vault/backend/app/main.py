@@ -10,7 +10,7 @@ from app.database import SessionLocal
 from app.routes import (
     auth_router, cases_router, evidence_router, ai_router,
     blockchain_router, audit_router, users_router,
-    dashboard_router, reports_router,
+    dashboard_router, reports_router, public_router,
 )
 
 app = FastAPI(
@@ -21,16 +21,17 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS — allow frontend
+# CORS — allow frontend & mobile devices on local network
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Register routes
+app.include_router(public_router)
 app.include_router(auth_router)
 app.include_router(cases_router)
 app.include_router(evidence_router)
@@ -40,6 +41,7 @@ app.include_router(audit_router)
 app.include_router(users_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
+
 
 
 @app.on_event("startup")

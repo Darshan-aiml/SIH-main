@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { userApi } from '../services/api';
 import type { User } from '../types';
-import { Users, Plus, Shield } from 'lucide-react';
+import { Users } from 'lucide-react';
+
+
 
 const roleColors: Record<string, string> = {
   ADMIN: 'text-red-400 bg-red-500/10 border-red-500/20',

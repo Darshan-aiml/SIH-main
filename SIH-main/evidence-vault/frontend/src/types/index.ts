@@ -10,6 +10,17 @@ export interface User {
   last_login: string | null;
 }
 
+export type CaseClassificationType =
+  | 'ACCIDENT'
+  | 'MURDER'
+  | 'THEFT'
+  | 'CYBER_CRIME'
+  | 'FINANCIAL_FRAUD'
+  | 'NARCOTICS'
+  | 'ASSAULT'
+  | 'MISSING_PERSON'
+  | 'GENERAL';
+
 export interface Case {
   id: number;
   case_number: string;
@@ -41,6 +52,7 @@ export interface Evidence {
   classification: string;
   ai_confidence: number;
   integrity_status: string;
+  status?: string;
   blockchain_status: string;
   custody_count: number;
   risk_score: number;
@@ -60,17 +72,27 @@ export interface EvidencePassport {
   mime_type: string;
   file_size: number;
   sha256_hash: string;
-  created_at: string;
-  uploaded_at: string;
   current_version: number;
   current_custodian: string;
   classification: string;
   ai_confidence: number;
   integrity_status: string;
-  blockchain_status: string;
-  custody_count: number;
+  blockchain_tx_id: string;
+  blockchain_block_index: number;
+  blockchain_verified: boolean;
+  blockchain_status?: string;
+  custody_event_count: number;
+  custody_count?: number;
+  risk_score: number;
+  created_at: string;
+  description: string;
+  document_type?: string;
+  uploaded_by?: string;
+  uploaded_at?: string;
   qr_code: string;
+  verification_url?: string;
 }
+
 
 export interface VerifyResult {
   status: string;
@@ -151,6 +173,22 @@ export interface AuditLog {
   details: string;
 }
 
+export interface LoginRecord {
+  id: number;
+  timestamp: string;
+  user_id: number | null;
+  user_email: string;
+  full_name: string;
+  badge_number: string;
+  department: string;
+  role: string;
+  action: string;
+  ip_address: string;
+  status: string;
+  details: string;
+  is_current_user: boolean;
+}
+
 export interface DashboardStats {
   total_cases: number;
   total_evidence: number;
@@ -158,6 +196,7 @@ export interface DashboardStats {
   pending_review: number;
   ai_alerts: number;
   blockchain_blocks: number;
+  custody_transfers?: number;
   recent_activity: Array<{
     action: string;
     user: string;
@@ -195,4 +234,110 @@ export interface GraphEdge {
 export interface GraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
+}
+
+export interface NetworkInfo {
+  lan_ip: string;
+  frontend_port: number;
+  backend_port: number;
+  mobile_base_url: string;
+  localhost_base_url: string;
+  status: string;
+}
+
+export interface PublicEvidenceVerification {
+  valid: boolean;
+  is_tamper_proof: boolean;
+  verification_url: string;
+  qr_code: string;
+  verified_at: string;
+  evidence: {
+    id: number;
+    evidence_id: string;
+    original_filename: string;
+    evidence_type: string;
+    classification: string;
+    mime_type: string;
+    file_size: number;
+    sha256_hash: string;
+    integrity_status: string;
+    blockchain_status: string;
+    current_custodian: string;
+    current_version: number;
+    uploaded_by: string;
+    created_at: string;
+    uploaded_at?: string;
+  };
+  case: {
+    id: number;
+    case_number: string;
+    title: string;
+    description: string;
+    case_type: string;
+    status: string;
+    priority: string;
+    investigating_officer: string;
+    created_at: string;
+    updated_at?: string;
+  };
+  blockchain: {
+    block_index: number;
+    block_hash: string;
+    previous_hash: string;
+    timestamp: string;
+    tx_id: string;
+    hash_match: boolean;
+    consensus: string;
+    status: string;
+  };
+  custody_trail: Array<{
+    id: number;
+    action: string;
+    actor_name: string;
+    actor_role: string;
+    location: string;
+    evidence_condition: string;
+    timestamp: string;
+    sha256_hash: string;
+    notes?: string;
+  }>;
+}
+
+export interface PublicCaseVerification {
+  valid: boolean;
+  all_evidence_intact: boolean;
+  verification_url: string;
+  qr_code: string;
+  verified_at: string;
+  case: {
+    id: number;
+    case_number: string;
+    title: string;
+    description: string;
+    case_type: string;
+    status: string;
+    priority: string;
+    investigating_officer: string;
+    created_at: string;
+    updated_at?: string;
+  };
+  evidence_count: number;
+  evidence_list: Array<{
+    id: number;
+    evidence_id: string;
+    original_filename: string;
+    evidence_type: string;
+    classification: string;
+    sha256_hash: string;
+    integrity_status: string;
+    blockchain_status: string;
+    current_custodian: string;
+    created_at: string;
+    verify_link: string;
+  }>;
+  blockchain_seal: {
+    status: string;
+    evidence_secured_count: number;
+    timestamp: string;
+  };
 }

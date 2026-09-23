@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../services/api';
 import type { DashboardStats } from '../types';
 import {
-  FolderOpen, Shield, CheckCircle, Clock, AlertTriangle, Blocks,
-  Plus, Upload, Link2, ClipboardList, TrendingUp, Activity
+  FolderOpen, Shield, CheckCircle, Clock, Blocks,
+  Plus, Upload, Link2, ClipboardList, TrendingUp, Activity, KeyRound
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -148,57 +148,55 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="glass-card p-6">
-          <h3 className="text-sm font-semibold text-dark-300 mb-4 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-cyber-400" /> Recent Activity
-          </h3>
-          <div className="space-y-3">
+      {/* Recent Activity (Full Width - High Risk Alerts Removed) */}
+      <div className="glass-card p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-dark-200 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-cyber-400" /> Recent Evidence & Case Activity
+            </h3>
+            <p className="text-xs text-dark-400 mt-0.5">Chronological record of evidence creation, custody transfers, and integrity checks</p>
+          </div>
+          <button
+            onClick={() => navigate('/login-activity')}
+            className="inline-flex items-center gap-1.5 text-xs text-vault-400 hover:text-vault-300 font-medium px-3 py-1.5 rounded-lg bg-vault-600/10 border border-vault-500/20 hover:bg-vault-600/20 transition-all cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>View Officer Login History →</span>
+          </button>
+        </div>
+
+        {stats.recent_activity.length === 0 ? (
+          <p className="text-xs text-dark-500 py-6 text-center">No recent operational activities recorded.</p>
+        ) : (
+          <div className="divide-y divide-dark-800/60">
             {stats.recent_activity.map((a, i) => (
-              <div key={i} className="flex items-center gap-3 py-2 border-b border-dark-800/50 last:border-0">
-                <div className={`w-2 h-2 rounded-full ${a.status === 'SUCCESS' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              <div key={i} className="flex items-center gap-4 py-3 hover:bg-dark-800/30 px-3 rounded-lg transition-colors">
+                <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${a.status === 'SUCCESS' ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500'}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-dark-200 truncate">
-                    <span className="font-mono text-vault-400 text-xs">{a.action}</span>
-                    <span className="mx-2 text-dark-600">•</span>
-                    <span className="text-dark-400">{a.resource}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-vault-400 text-xs font-semibold">{a.action}</span>
+                    {a.resource && (
+                      <>
+                        <span className="text-dark-600">•</span>
+                        <span className="text-dark-300 text-xs font-medium">{a.resource}</span>
+                      </>
+                    )}
+                    <span className="ml-auto text-xs text-dark-500">
+                      {a.timestamp ? new Date(a.timestamp).toLocaleString() : ''}
+                    </span>
+                  </div>
+                  <p className="text-xs text-dark-400 mt-0.5 flex items-center gap-2">
+                    <span>Officer: <strong className="text-dark-300 font-medium">{a.user || 'System'}</strong></span>
+                    <span className={`badge text-[10px] px-1.5 py-0.5 ${a.status === 'SUCCESS' ? 'badge-verified' : 'badge-tampered'}`}>
+                      {a.status}
+                    </span>
                   </p>
-                  <p className="text-xs text-dark-500">{a.user} • {a.timestamp ? new Date(a.timestamp).toLocaleString() : ''}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* High Risk Alerts */}
-        <div className="glass-card p-6">
-          <h3 className="text-sm font-semibold text-dark-300 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-red-400" /> High Risk Alerts
-          </h3>
-          {stats.high_risk_alerts.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="w-10 h-10 text-emerald-500/50 mx-auto mb-2" />
-              <p className="text-dark-400 text-sm">No high-risk alerts</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {stats.high_risk_alerts.map((a, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/20">
-                  <div>
-                    <p className="text-sm font-mono text-red-400">{a.evidence_id}</p>
-                    <p className="text-xs text-dark-400">{a.filename}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-red-400">{a.risk_score.toFixed(0)}/100</p>
-                    <span className="badge-high text-xs">{a.risk_level}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Quick Actions */}

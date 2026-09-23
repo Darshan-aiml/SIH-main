@@ -97,6 +97,7 @@ ROLE_PERMISSIONS = {
         "evidence.read",
         "evidence.verify", "evidence.version",
         "blockchain.read",
+        "audit.read",
         "ai.analyze",
         "reports.generate",
     },

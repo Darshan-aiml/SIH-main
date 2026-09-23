@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { evidenceApi, caseApi } from '../services/api';
 import type { Evidence, Case } from '../types';
 import {
-  Shield, Upload, Search, Filter, ChevronRight, FileText, Image, File,
-  Copy, Check, QrCode, CheckCircle, RefreshCw, Layers, Eye
+  Shield, Upload, Search, FileText, Image, File,
+  Copy, Check, QrCode, CheckCircle, RefreshCw, Eye
 } from 'lucide-react';
 
 const STAGES = [
@@ -27,7 +27,7 @@ export default function EvidenceVaultPage() {
   const [selectedCaseFilter, setSelectedCaseFilter] = useState('');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
-  const [selectedCustodianFilter, setSelectedCustodianFilter] = useState('');
+
 
   // Upload Modal State
   const [showUpload, setShowUpload] = useState(false);
@@ -47,7 +47,6 @@ export default function EvidenceVaultPage() {
     if (selectedCaseFilter) params.case_id = selectedCaseFilter;
     if (selectedTypeFilter) params.classification = selectedTypeFilter;
     if (selectedStatusFilter) params.status = selectedStatusFilter;
-    if (selectedCustodianFilter) params.custodian = selectedCustodianFilter;
 
     evidenceApi.list(params)
       .then((r) => setEvidence(r.data))
@@ -55,7 +54,8 @@ export default function EvidenceVaultPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [search, selectedCaseFilter, selectedTypeFilter, selectedStatusFilter, selectedCustodianFilter]);
+  useEffect(() => { load(); }, [search, selectedCaseFilter, selectedTypeFilter, selectedStatusFilter]);
+
 
   useEffect(() => {
     caseApi.list().then((r) => setCases(r.data)).catch(console.error);

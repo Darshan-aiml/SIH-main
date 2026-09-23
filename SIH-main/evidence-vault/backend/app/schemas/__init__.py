@@ -8,6 +8,27 @@ from pydantic import BaseModel, EmailStr
 class LoginRequest(BaseModel):
     email: str
     password: str
+    mfa_code: Optional[str] = None
+    temp_token: Optional[str] = None
+
+
+class MfaVerifyRequest(BaseModel):
+    temp_token: str
+    mfa_code: str
+
+
+class LoginResponse(BaseModel):
+    mfa_required: bool = False
+    temp_token: Optional[str] = None
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+    user: Optional["UserOut"] = None
+    officer_name: Optional[str] = None
+    badge_number: Optional[str] = None
+    role: Optional[str] = None
+    mfa_type: Optional[str] = None
+    message: Optional[str] = None
+    demo_totp_code: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -133,6 +154,7 @@ class EvidencePassport(BaseModel):
     blockchain_status: str
     custody_count: int = 0
     qr_code: str = ""
+    verification_url: Optional[str] = None
 
 
 class VerifyResult(BaseModel):

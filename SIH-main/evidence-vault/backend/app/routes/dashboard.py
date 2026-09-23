@@ -35,13 +35,22 @@ def get_dashboard(
     # AI alerts (high risk)
     high_risk = db.query(AIAnalysis).filter(AIAnalysis.risk_score >= 50).count()
 
-    # Recent activity
-    recent_logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10).all()
+    # Recent activity (filter out auth logins to keep dashboard focused on evidence & case operations)
+    recent_logs = (
+        db.query(AuditLog)
+        .filter(AuditLog.action.notin_(["LOGIN", "LOGOUT"]))
+        .order_by(AuditLog.timestamp.desc())
+        .limit(10)
+        .all()
+    )
+    if not recent_logs:
+        recent_logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10).all()
+
     recent = [
         {
             "action": l.action,
             "user": l.user_email,
-            "resource": f"{l.resource_type} {l.resource_id}",
+            "resource": f"{l.resource_type} {l.resource_id}".strip(),
             "timestamp": l.timestamp.isoformat() if l.timestamp else "",
             "status": l.status,
         }

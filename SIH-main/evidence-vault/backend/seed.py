@@ -78,6 +78,18 @@ def seed():
              "description": "Investigation into ransomware attack on Delhi Municipal Corporation digital infrastructure. Critical systems compromised on 1st September 2026.",
              "case_type": "CYBER_CRIME", "status": "OPEN", "priority": "CRITICAL",
              "investigating_officer": "Inspector Sharma"},
+            {"case_number": "CASE-2026-004", "title": "Hit-and-Run Fatal Collision — Ring Road Flyover",
+             "description": "Investigation into fatal hit-and-run road accident on Ring Road flyover involving a speeding SUV and two-wheeler. Debris analysis, vehicle paint samples, and toll gate CCTV footage catalogued.",
+             "case_type": "ACCIDENT", "status": "UNDER_INVESTIGATION", "priority": "HIGH",
+             "investigating_officer": "Inspector Sharma"},
+            {"case_number": "CASE-2026-005", "title": "Homicide Investigation — Sector 14 Warehouse",
+             "description": "Investigation into suspicious death and homicide at Sector 14 warehouse facility. Crime scene perimeter secured; biological forensic samples, weapon ballistics, and access logs gathered.",
+             "case_type": "MURDER", "status": "OPEN", "priority": "CRITICAL",
+             "investigating_officer": "Inspector Sharma"},
+            {"case_number": "CASE-2026-006", "title": "Commercial Break-in & Armed Robbery — Metro Plaza Jewellers",
+             "description": "Armed robbery and vault breach reported at Metro Plaza retail store. Physical forced-entry forensics, vault sensor triggers, and CCTV tapes catalogued in vault.",
+             "case_type": "THEFT", "status": "OPEN", "priority": "HIGH",
+             "investigating_officer": "Inspector Sharma"},
         ]
         cases = []
         for c in cases_data:
@@ -124,6 +136,14 @@ def seed():
              "classification": "FORENSIC_REPORT", "content": "DIGITAL FORENSIC REPORT\nCase: CASE-2026-003\nIncident: Ransomware Attack\nDate of Incident: 01-Sep-2026\nAnalyst: Dr. Priya Forensic\n\nMalware Analysis:\nThe ransomware variant identified as 'CryptoLock-X' was deployed via spear-phishing email targeting the IT administrator. The malware encrypted 2,847 files across 12 servers.\n\nAttack Vector: Email attachment (malicious macro in Excel file)\nEncryption: AES-256\nRansom Demand: 5 Bitcoin\nC2 Server: 185.234.xx.xx (located in Eastern Europe)\n\nEmail: admin@dmc.gov.in was the initial compromise point"},
             {"filename": "Server_Logs_DMC.txt", "case_idx": 2, "mime": "text/plain",
              "classification": "EVIDENCE", "content": "SERVER ACCESS LOG — CONFIDENTIAL\nServer: DMC-PROD-01\nDate: 01-Sep-2026\n\n[08:45:22] INFO: User admin@dmc.gov.in logged in from 10.0.1.15\n[08:46:03] INFO: Email attachment opened: Q3_Budget.xlsx\n[08:46:15] WARNING: Macro execution detected\n[08:46:18] CRITICAL: Suspicious process spawned: svchost_update.exe\n[08:46:22] CRITICAL: Mass file encryption started\n[08:47:01] CRITICAL: 500 files encrypted in /data/\n[09:15:00] CRITICAL: Ransom note displayed on all terminals"},
+            {"filename": "Crash_Site_Inspection_Report.pdf", "case_idx": 3, "mime": "application/pdf",
+             "classification": "INVESTIGATION_REPORT", "content": "ACCIDENT INVESTIGATION & TECHNICAL RECONSTRUCTION REPORT\nCase: CASE-2026-004\nLocation: Outer Ring Road Flyover, Pillar #84\nVehicle 1: Two-wheeler (Reg: DL-04-BK-8921)\nVehicle 2 (Suspect): Dark Grey SUV (Make: Fortuner, partial plate 5821)\n\nAnalysis: Skid mark measurements indicate suspect vehicle speed exceeded 110 km/h in an 60 km/h zone. Impact angle 35 degrees rear-left collision. Metallic paint scraped onto guardrail matches factory code #GR-402.\n\nInvestigating Officer: Inspector Sharma"},
+            {"filename": "Toll_Plaza_Dashcam_Clip.png", "case_idx": 3, "mime": "image/png",
+             "classification": "EVIDENCE", "content": "High-definition toll plaza frame grab showing suspect dark grey SUV fleeing with front bumper damage"},
+            {"filename": "Autopsy_Forensic_PostMortem.pdf", "case_idx": 4, "mime": "application/pdf",
+             "classification": "FORENSIC_REPORT", "content": "MEDICO-LEGAL POST-MORTEM EXAMINATION REPORT\nCase: CASE-2026-005\nSubject: Unidentified Male (approx. age 35)\nExamining Pathologist: Dr. K. N. Rao, Forensic Science Laboratory\n\nCause of Death: Hemorrhagic shock secondary to penetrating trauma. Blunt force injury observed on occipital region. Time of death estimated between 22:00 and 01:00 hours.\nBiological samples preserved: Blood card, fingernail scrapings, DNA reference swabs."},
+            {"filename": "CrimeScene_Biological_Swab_Analysis.txt", "case_idx": 4, "mime": "text/plain",
+             "classification": "FORENSIC_REPORT", "content": "DNA FORENSIC LAB ANALYSIS REPORT\nSample ID: BIO-SWAB-005A\nOrigin: Door handle at Sector 14 warehouse\nAllele Profile: Mixed DNA profile detected. Major donor matches victim; minor STR donor profile catalogued in CODIS pending suspect reference cross-match."},
         ]
 
         evidences = []
@@ -328,11 +348,9 @@ def seed():
 
         db.commit()
 
-        # === AUDIT LOGS ===
+        # === AUDIT LOGS (Operational events only; LOGIN events are captured live) ===
         print("📝 Creating audit logs...")
         audit_actions = [
-            ("LOGIN", users[0], "AUTH", "", "Admin logged in"),
-            ("LOGIN", users[1], "AUTH", "", "Investigator logged in"),
             ("CASE_CREATED", users[1], "CASE", "CASE-2026-001", "Missing Person case created"),
             ("CASE_CREATED", users[1], "CASE", "CASE-2026-002", "Financial Fraud case created"),
             ("CASE_CREATED", users[1], "CASE", "CASE-2026-003", "Cyber Crime case created"),

@@ -7,9 +7,11 @@ from app.routes.audit import router as audit_router
 from app.routes.users import router as users_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.reports import router as reports_router
+from app.routes.public import router as public_router
 
 __all__ = [
     "auth_router", "cases_router", "evidence_router", "ai_router",
     "blockchain_router", "audit_router", "users_router",
-    "dashboard_router", "reports_router",
+    "dashboard_router", "reports_router", "public_router",
 ]
+

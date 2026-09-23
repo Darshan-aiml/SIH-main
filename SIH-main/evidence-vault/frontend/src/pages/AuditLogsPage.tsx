@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { auditApi } from '../services/api';
 import type { AuditLog } from '../types';
-import { ClipboardList, Filter, Search } from 'lucide-react';
+import { ClipboardList, Search, KeyRound } from 'lucide-react';
 
 const actionColors: Record<string, string> = {
   LOGIN: 'text-blue-400', EVIDENCE_UPLOADED: 'text-emerald-400',
@@ -30,11 +31,20 @@ export default function AuditLogsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-          <ClipboardList className="w-7 h-7 text-amber-400" /> Audit Logs
-        </h1>
-        <p className="text-dark-400 text-sm mt-1">Complete operation audit trail</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <ClipboardList className="w-7 h-7 text-amber-400" /> Audit Logs
+          </h1>
+          <p className="text-dark-400 text-sm mt-1">Complete operation audit trail</p>
+        </div>
+        <Link
+          to="/login-activity"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-vault-600/10 border border-vault-500/20 text-xs font-medium text-vault-400 hover:bg-vault-600/20 transition-all self-start sm:self-auto"
+        >
+          <KeyRound className="w-3.5 h-3.5" />
+          <span>View Dedicated Login History →</span>
+        </Link>
       </div>
 
       {/* Filters */}
